@@ -1,0 +1,247 @@
+ <div class="embroidery-addon">
+    <label>
+        <input type="checkbox" id="embroidery-toggle"> <span class="one-line">Add Embroidered Name <span id="price">+Rs. 15.00</span></span>
+    </label>
+    <div id="emboidery-addon--container">
+        <div id="embroidery-options" class="hidden">
+            <label> Add up to 10 characters: </label>
+            <input 
+                type="text" 
+                id="name-input" 
+                maxlength="10" 
+                form="{{ 'product-form-' | append: section.id }}" 
+                name="properties[Embroidered Text]" 
+            >
+            
+            <label> Choose letter colour: </label>
+            <div class="option-group">
+                <input 
+                    type="radio" 
+                    id="color-white" 
+                    form="{{ 'product-form-' | append: section.id }}" 
+                    name="Color" 
+                    value="white" 
+                    checked
+                >
+                <label for="color-white">White</label>
+                <input 
+                    type="radio" 
+                    id="color-gold" 
+                    form="{{ 'product-form-' | append: section.id }}" 
+                    name="Color" 
+                    value="gold"
+                >
+                <label for="color-gold">Gold</label>
+            </div>
+            <label> Choose font: </label>
+            <div class="option-group">
+                <input 
+                    type="radio" 
+                    id="font-serif" 
+                    form="{{ 'product-form-' | append: section.id }}" 
+                    name="Font" 
+                    value="serif" 
+                    checked
+                >
+                <label class="serif" for="font-serif">Serif</label>
+                <input 
+                    type="radio" 
+                    id="font-script" 
+                    form="{{ 'product-form-' | append: section.id }}" 
+                    name="Font" 
+                    value="script"
+                >
+                <label class="script" for="font-script">Script</label>
+            </div>
+        </div>
+        <div class="mockup hidden" id="mockup-preview">
+            <img src="" id="mockup-image" alt="" />
+            <p id="mockup-text" class="mockup-text">Mockup Image</p>
+        </div>
+    </div>
+    <div id="select-font" class="hidden">
+        <p>Unfortunately we can not accept returns or exchanges on embroidered items.</p>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const addonProductContainer = document.getElementById("addon-product");
+        const addonPrice = document.getElementById("addon-price");
+        const addonVariantId = document.getElementById("addon-variant-id");
+        const toggle = document.getElementById("embroidery-toggle");
+        const options = document.getElementById("embroidery-options");
+        const select_font = document.getElementById("select-font");
+        const nameInput = document.getElementById("name-input");
+        const mockupPreview = document.getElementById("mockup-preview");
+        const mockuTextPreview = document.getElementById("mockup-text");
+        const mockupImage = document.getElementById("mockup-image");
+        const colorRadios = document.querySelectorAll("input[name='Color']");
+        const fontRadios = document.querySelectorAll("input[name='Font']");
+        const priceLabel = document.getElementById("price");
+
+        // Getting Add To Cart button for handling cart.js
+        const addToCartButton = document.querySelector("form[action='/cart/add'] button[type='submit']");
+        const cartDrawer = document.querySelector("cart-drawer");
+
+        const variants = {
+            {% for variant in product.metafields.custom.addon_product.value.variants %}
+                "{{ variant.option1 | downcase }}": {
+                    id: "{{ variant.id }}",
+                    price: "{{ variant.price | money }}",
+                    image: "{{ variant.featured_image | img_url: 'medium' }}"
+                },
+            {% endfor %}
+        };
+
+        function getSelectedVariantId() {
+            const selectedColor = document.querySelector("input[name='Color']:checked");
+            return selectedColor ? variants[selectedColor.value]?.id : null;
+        }
+
+        console.log("variants: ", variants)
+
+        function updateVariantDisplay(variant) {
+            if (variant) {
+                mockupImage.src = variant.image ? variant.image : "";
+                priceLabel.textContent = `+${variant.price}`;
+            }
+        }
+
+        toggle.addEventListener("change", () => {
+            options.classList.toggle("hidden", !toggle.checked);
+            mockupPreview.classList.toggle("hidden", !toggle.checked);
+            select_font.classList.toggle("hidden", !toggle.checked);
+            if (toggle.checked && variants.white) {
+                updateVariantDisplay(variants.white);
+            }
+        });
+
+        colorRadios.forEach(radio => {
+            radio.addEventListener("change", (e) => {
+                const selectedVariant = variants[e.target.value];
+                if (selectedVariant) {
+                    updateVariantDisplay(selectedVariant);
+                    mockupPreview.classList.toggle('gold', e.target.value === 'gold');
+                    mockupPreview.classList.toggle('white', e.target.value === 'white');
+                }
+            });
+        });
+
+        // Update mockup preview text
+        nameInput.addEventListener("input", () => {
+            mockuTextPreview.textContent = nameInput.value || "Mockup Image";
+        });
+
+        // Handle font selection
+        fontRadios.forEach(radio => {
+            radio.addEventListener("change", (e) => {
+                mockupPreview.classList.toggle("script", e.target.value === "script");
+                mockupPreview.classList.toggle("serif", e.target.value === "serif");
+            });
+        });
+
+        // Handling Add To Cart Button
+        // addToCartButton.addEventListener("click", async (event) => {
+        //     event.preventDefault();
+        //     const form = addToCartButton.closest("form");
+        //     const formData = new FormData(form);
+
+        //     const mainProductId = formData.get("id");
+        //     const mainProductProperties = {
+        //         "Embroidered Text": nameInput.value || "",
+        //         "Letter Colour": document.querySelector("input[name='Color']:checked")?.value || "",
+        //         "Font": document.querySelector("input[name='Font']:checked")?.value || ""
+        //     };
+
+        //     const addonVariantId = getSelectedVariantId();
+        //     const items = [
+        //         { id: mainProductId, quantity: 1, properties: mainProductProperties }
+        //     ];
+
+        //     if (toggle.checked && addonVariantId) {
+        //         items.push({
+        //             id: addonVariantId,
+        //             quantity: 1
+        //         });
+        //     }
+
+        //     await fetch("/cart/add.js", {
+        //         method: "POST",
+        //         headers: { "Content-Type": "application/json" },
+        //         body: JSON.stringify({ items })
+        //     });
+
+
+        //     $.ajax({
+        //         url: '/?section_id=cart-drawer',
+        //         type: 'GET',
+        //         dataType: 'html',
+        //         success:function(carthtml) {
+        //             $('.cart-drawer').html($(carthtml).find('.cart-drawer').html());
+        //         }
+        //     });
+
+        //     // window.location.href = "/cart";
+        // });
+
+
+
+        addToCartButton.addEventListener("click", async (event) => {
+            event.preventDefault();
+            const form = addToCartButton.closest("form");
+            const formData = new FormData(form);
+
+            const mainProductId = formData.get("id");
+            const mainProductProperties = {
+                "Embroidered Text": nameInput.value || "",
+                "Letter Colour": document.querySelector("input[name='Color']:checked")?.value || "",
+                "Font": document.querySelector("input[name='Font']:checked")?.value || ""
+            };
+
+            const addonVariantId = getSelectedVariantId();
+            const items = [
+                { id: mainProductId, quantity: 1, properties: mainProductProperties }
+            ];
+
+            if (toggle.checked && addonVariantId) {
+                items.push({
+                    id: addonVariantId,
+                    quantity: 1
+                });
+            }
+
+            try {
+                const response = await fetch("/cart/add.js", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ items })
+                });
+
+                if (response.ok) {
+                    $.ajax({
+                        url: '/?section_id=cart-drawer',
+                        type: 'GET',
+                        dataType: 'html',
+                        success:function(carthtml) {
+                            console.log('cartHtml: ', carthtml)
+                            $('cart-drawer').html($(carthtml).find('cart-drawer').html());
+                            if (cartDrawer.classList.contains('is-empty')) {
+                                cartDrawer.classList.remove('is-empty');
+                            }
+                            document.querySelector('#cart-icon-bubble').click();
+                        }
+                    });
+                    
+                } else {
+                    console.error('Failed to add items to cart');
+                }
+            } catch (error) {
+                console.error('Error adding items to cart:', error);
+            }
+        });
+
+    });
+
+</script>
